@@ -4,7 +4,7 @@
     <Authors>Bernhard Richter</Authors>
     <Description>Simplifies testing AspNet applications that optionally uses the CQRS pattern. </Description>
     <Copyright>Bernhard Richter</Copyright>
-    <PackageLicenseUrl>http://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/seesharper/CQRS.AspNet.Testing</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

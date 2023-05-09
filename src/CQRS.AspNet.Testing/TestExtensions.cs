@@ -8,7 +8,11 @@ using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace CQRS.AspNet.Testing;
-public static class MockExtensions
+
+/// <summary>
+/// Contains extension methods for mocking services and verifying invocations.
+/// </summary>
+public static class TestExtensions
 {
     /// <summary>
     /// Creates a new <see cref="Mock{T}"/> and registers it as a singleton in the <see cref="IHostBuilder"/>.
@@ -85,8 +89,7 @@ public static class MockExtensions
 
     /// <summary>
     /// Verifies that the <see cref="IQueryHandler{TQuery, TResult}"/> was called the specified number of times.     
-    /// </summary>
-    /// </summary>
+    /// </summary>    
     /// <typeparam name="TQuery">The query type of the handler to be verified.</typeparam>
     /// <typeparam name="TResult">The result type of the handler to be verified.</typeparam>
     /// <param name="mock">The <see cref="Mock{T}"/> representing the mocked query handler.</param>

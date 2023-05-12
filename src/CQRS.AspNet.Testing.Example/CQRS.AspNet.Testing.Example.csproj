@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="LightInject.Microsoft.Hosting" Version="1.6.0" />
-    <PackageReference Include="CQRS.LightInject" Version="1.3.2" />
+    <PackageReference Include="LightInject.Microsoft.Hosting" Version="1.6.1" />
+    <PackageReference Include="CQRS.LightInject" Version="1.3.3" />
   </ItemGroup>
 </Project>

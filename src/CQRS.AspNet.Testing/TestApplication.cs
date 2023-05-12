@@ -33,7 +33,6 @@ public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, 
         return host;
     }
 
-
     void IHostBuilderConfiguration.AddHostBuilderConfiguration(Action<IHostBuilder> configureHostBuilder)
     {
         _configureHostBuilderActions.Add(configureHostBuilder);

@@ -221,4 +221,31 @@ public static class TestExtensions
     /// <returns>The <see cref="IConfiguration"/> retrieved from the <see cref="IServiceProvider"/> used by the test application.</returns>
     public static IConfiguration GetConfiguration<TEntryPoint>(this TestApplication<TEntryPoint> testApplication) where TEntryPoint : class
         => testApplication.Services.GetRequiredService<IConfiguration>();
+
+
+    /// <summary>
+    /// Configures the given <typeparamref name="TContainer"/>
+    /// </summary>
+    /// <typeparam name="TContainer">The type of container to be configured.</typeparam>
+    /// <param name="hostBuilderConfiguration">The <see cref="IHostBuilderConfiguration"/> instance.</param>
+    /// <param name="configureContainer">The function used to configure the <typeparamref name="TContainer"/> instance.</param>
+    /// <returns>The <see cref="IHostBuilderConfiguration"/> for chaining calls.</returns>
+    public static IHostBuilderConfiguration ConfigureContainer<TContainer>(this IHostBuilderConfiguration hostBuilderConfiguration, Action<TContainer> configureContainer)
+        where TContainer : class
+    {
+        hostBuilderConfiguration.AddHostBuilderConfiguration(builder => builder.ConfigureContainer<TContainer>(configureContainer));
+        return hostBuilderConfiguration;
+    }
+
+    /// <summary>
+    /// Configures the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="hostBuilderConfiguration">The <see cref="IHostBuilderConfiguration"/> instance.</param>
+    /// <param name="configureServices">The function used to configure the <see cref="IServiceCollection"/>.</param>
+    /// <returns>The <see cref="IHostBuilderConfiguration"/> for chaining calls.</returns>
+    public static IHostBuilderConfiguration ConfigureServices(this IHostBuilderConfiguration hostBuilderConfiguration, Action<IServiceCollection> configureServices)
+    {
+        hostBuilderConfiguration.AddHostBuilderConfiguration(builder => builder.ConfigureServices(configureServices));
+        return hostBuilderConfiguration;
+    }
 }

@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using CQRS.Command.Abstractions;
+using LightInject;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -111,5 +112,22 @@ public class MockExtensionsTests
         // Verify that the query handler was called once with the query value "Oslo"
         queryHandlerMock.VerifyQueryHandler(query => query.City == "oslo", Times.Once());
     }
+
+    [Fact]
+    public void ShouldConfigureContainer()
+    {
+        var testApplication = new TestApplication<Program>();
+        testApplication.ConfigureContainer<IServiceContainer>(c => c.Register<Foo>());
+        testApplication.Services.GetService<Foo>().Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ShouldConfigureServices()
+    {
+        var testApplication = new TestApplication<Program>();
+        testApplication.ConfigureServices(services => services.AddSingleton<Foo>());
+        testApplication.Services.GetService<Foo>().Should().NotBeNull();
+    }
+    public class Foo { }
 }
 

@@ -128,6 +128,25 @@ public class MockExtensionsTests
         testApplication.ConfigureServices(services => services.AddSingleton<Foo>());
         testApplication.Services.GetService<Foo>().Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task ShouldRegisterMockUsingConfigureContainer()
+    {
+        var commandHandlerMock = new Mock<ICommandHandler<TemperatureCommand>>();
+        var testApplication = new TestApplication<Program>();
+        testApplication.ConfigureContainer<IServiceContainer>(sc =>
+        {
+            var test = sc.AvailableServices.Where(sr => sr.ServiceType == typeof(ICommandHandler<TemperatureCommand>)).ToList();
+            sc.RegisterInstance(commandHandlerMock.Object);
+            test = sc.AvailableServices.Where(sr => sr.ServiceType == typeof(ICommandHandler<TemperatureCommand>)).ToList();
+        });
+        var client = testApplication.CreateClient();
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        commandHandlerMock.VerifyCommandHandler(Times.Once());
+    }
+
+
     public class Foo { }
 }
 

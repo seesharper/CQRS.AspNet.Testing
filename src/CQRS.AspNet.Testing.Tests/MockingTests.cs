@@ -28,6 +28,17 @@ public class MockExtensionsTests
     }
 
     [Fact]
+    public async Task ShouldUseConfiguredValuesInApp()
+    {
+        using var testApplication = new TestApplication<Program>()
+        .WithConfiguration("SomeConfigKey", "SomeOverriddenConfigValue")
+        .WithConfiguration("AnotherConfigKey", "AnotherOverriddenConfigValue");
+        using var client = testApplication.CreateClient();
+        var result = await client.GetStringAsync("/config");
+        
+    }
+
+    [Fact]
     public async Task ShouldConfigureHostBuilder()
     {
         var testApplication = new TestApplication<Program>();

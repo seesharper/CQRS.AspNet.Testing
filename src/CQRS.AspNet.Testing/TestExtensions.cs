@@ -210,6 +210,7 @@ public static class TestExtensions
     public static TestApplication<TEntryPoint> WithConfiguration<TEntryPoint>(this TestApplication<TEntryPoint> testApplication, string key, string? value) where TEntryPoint : class
     {
         testApplication.ConfigureHostBuilder(builder => builder.ConfigureHostConfiguration(configurationBuilder => configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { { key, value } })));
+        testApplication.ConfigureHostBuilder(builder => builder.ConfigureAppConfiguration(configurationBuilder => configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { { key, value } })));
         return testApplication;
     }
 

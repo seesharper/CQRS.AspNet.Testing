@@ -16,6 +16,9 @@ app.MapGet("/temperatures/{city}", ([FromServices] IQueryExecutor queryExecutor,
 app.MapPost("/temperatures", ([FromServices] ICommandExecutor commandExecutor, [FromBody] TemperatureCommand command)
     => commandExecutor.ExecuteAsync(command));
 
+app.MapGet("/config", ([FromServices] IConfiguration configuration)
+    => configuration.GetValue<string>("SomeConfigKey"));
+
 app.Run();
 
 public partial class Program { }

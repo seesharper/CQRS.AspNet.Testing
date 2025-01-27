@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RichardSzalay.MockHttp;
 
 namespace CQRS.AspNet.Testing;
 
@@ -49,9 +50,7 @@ public static class TestExtensions
     /// <param name="hostBuilderConfiguration">The <see cref="IHostBuilderConfiguration"/> instance.</param>
     /// <returns>The mocked command handler.</returns>
     public static Mock<ICommandHandler<TCommand>> MockCommandHandler<TCommand>(this IHostBuilderConfiguration hostBuilderConfiguration) where TCommand : class
-    {
-        return MockService<ICommandHandler<TCommand>>(hostBuilderConfiguration);
-    }
+        => MockService<ICommandHandler<TCommand>>(hostBuilderConfiguration);
 
     /// <summary>
     /// Sets up the <see cref="Mock{T}"/> to return the specified value when the <see cref="IQueryHandler{TQuery,TResult}"/> is called.
@@ -190,6 +189,23 @@ public static class TestExtensions
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             times);
         return logger;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="MockHttpMessageHandler"/> and registers it as a singleton in the <see cref="IHostBuilder"/>.
+    /// </summary>
+    /// <typeparam name="TService">The type of service that identifies the <see cref="HttpClient"/></typeparam>
+    /// <param name="hostBuilderConfiguration">The <see cref="IHostBuilderConfiguration"/> instance.</param>
+    /// <returns><see cref="MockHttpMessageHandler"/></returns>
+    public static MockHttpMessageHandler MockHttpClient<TService>(this IHostBuilderConfiguration hostBuilderConfiguration)
+        => hostBuilderConfiguration.MockHttpClient(typeof(TService).Name);
+
+    public static MockHttpMessageHandler MockHttpClient(this IHostBuilderConfiguration hostBuilderConfiguration, string name)
+    {
+        var mockHttpMessageHandler = new MockHttpMessageHandler();
+        hostBuilderConfiguration.ConfigureServices(services => services.TryDecorate<IHttpClientFactory, HttpClientFactoryDecorator>());
+        hostBuilderConfiguration.ConfigureServices(services => services.AddKeyedSingleton(name, mockHttpMessageHandler));
+        return mockHttpMessageHandler;
     }
 
     private static Mock<T> RegisterMockAsSingleton<T>(IHostBuilderConfiguration hostBuilderConfiguration) where T : class

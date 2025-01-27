@@ -171,7 +171,8 @@ public class MockExtensionsTests
         var client = testApplication.CreateClient();
         var response = await client.GetAsync("/comments");
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        response.Content.ReadAsStringAsync().Result.ShouldBe("{\"Name\":\"Test\"}");
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldBe("{\"Name\":\"Test\"}");
     }
 
     [Fact]

@@ -200,6 +200,12 @@ public static class TestExtensions
     public static MockHttpMessageHandler MockHttpClient<TService>(this IHostBuilderConfiguration hostBuilderConfiguration)
         => hostBuilderConfiguration.MockHttpClient(typeof(TService).Name);
 
+    /// <summary>
+    /// Creates a new <see cref="MockHttpMessageHandler"/> and registers it as a singleton in the <see cref="IHostBuilder"/>.
+    /// </summary>
+    /// <param name="hostBuilderConfiguration">The <see cref="IHostBuilderConfiguration"/> instance.</param>
+    /// <param name="name">The name of the <see cref="HttpClient"/> to mock.</param>
+    /// <returns></returns>
     public static MockHttpMessageHandler MockHttpClient(this IHostBuilderConfiguration hostBuilderConfiguration, string name)
     {
         var mockHttpMessageHandler = new MockHttpMessageHandler();

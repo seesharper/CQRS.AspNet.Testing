@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using CQRS.AspNet.Testing.Example;
 using CQRS.Command.Abstractions;
 using CQRS.Query.Abstractions;
@@ -5,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseLightInject(sr => sr.RegisterFrom<CompositionRoot>());
+builder.Services.AddHttpClient("PostsClient", client => client.BaseAddress = new Uri("https://jsonplaceholder.typicode.com/posts"));
+builder.Services.AddHttpClient<CommentsClient>(client => client.BaseAddress = new Uri("https://jsonplaceholder.typicode.com/comments"));
+
 
 var app = builder.Build();
 
@@ -18,6 +22,25 @@ app.MapPost("/temperatures", ([FromServices] ICommandExecutor commandExecutor, [
 
 app.MapGet("/config", ([FromServices] IConfiguration configuration)
     => configuration.GetValue<string>("SomeConfigKey"));
+
+
+app.MapGet("/comments", async (CommentsClient commentsClient) =>
+{
+    return await commentsClient.GetComments();
+});
+
+app.MapGet("/posts", async ([FromServices] IHttpClientFactory httpClientFactory) =>
+{
+    var postsClient = httpClientFactory.CreateClient("PostsClient");
+    var response = await postsClient.GetAsync(string.Empty);
+    return await response.Content.ReadAsStringAsync();
+});
+
+app.MapGet("/comments/{commentId}", async (CommentsClient commentsClient, string commentId) =>
+{
+    return await commentsClient.GetComment(commentId);
+});
+
 
 app.Run();
 

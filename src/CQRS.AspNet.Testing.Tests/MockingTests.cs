@@ -1,9 +1,12 @@
+using System.Net;
 using System.Net.Http.Json;
 using CQRS.Command.Abstractions;
 using LightInject;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using RichardSzalay.MockHttp;
+
 namespace CQRS.AspNet.Testing.Tests;
 
 public class MockExtensionsTests
@@ -12,8 +15,8 @@ public class MockExtensionsTests
     public void ShouldGetConfiguredValue()
     {
         var testApplication = new TestApplication<Program>();
-        testApplication.GetConfiguration().GetValue<string>("SomeConfigKey").Should().Be("SomeConfigValue");
-        testApplication.GetConfiguration().GetValue<string>("AnotherConfigKey").Should().Be("AnotherConfigValue");
+        testApplication.GetConfiguration().GetValue<string>("SomeConfigKey").ShouldBe("SomeConfigValue");
+        testApplication.GetConfiguration().GetValue<string>("AnotherConfigKey").ShouldBe("AnotherConfigValue");
     }
 
     [Fact]
@@ -23,8 +26,8 @@ public class MockExtensionsTests
         .WithConfiguration("SomeConfigKey", "SomeOverriddenConfigValue")
         .WithConfiguration("AnotherConfigKey", "AnotherOverriddenConfigValue");
 
-        testApplication.GetConfiguration().GetValue<string>("SomeConfigKey").Should().Be("SomeOverriddenConfigValue");
-        testApplication.GetConfiguration().GetValue<string>("AnotherConfigKey").Should().Be("AnotherOverriddenConfigValue");
+        testApplication.GetConfiguration().GetValue<string>("SomeConfigKey").ShouldBe("SomeOverriddenConfigValue");
+        testApplication.GetConfiguration().GetValue<string>("AnotherConfigKey").ShouldBe("AnotherOverriddenConfigValue");
     }
 
     [Fact]
@@ -35,7 +38,7 @@ public class MockExtensionsTests
         .WithConfiguration("AnotherConfigKey", "AnotherOverriddenConfigValue");
         using var client = testApplication.CreateClient();
         var result = await client.GetStringAsync("/config");
-        
+
     }
 
     [Fact]
@@ -61,7 +64,7 @@ public class MockExtensionsTests
 
         var result = await client.GetFromJsonAsync<TemperatureQueryResult>("/temperatures/oslo");
 
-        result!.Value.Should().Be(22.0);
+        result!.Value.ShouldBe(22.0);
     }
 
     [Fact]
@@ -115,7 +118,7 @@ public class MockExtensionsTests
         var result = await client.GetFromJsonAsync<TemperatureQueryResult>("/temperatures/oslo");
 
         // The value is now 10.0 instead of 22.0 which is the value returned from the original query handler.
-        result!.Value.Should().Be(10.0);
+        result!.Value.ShouldBe(10.0);
 
         // Verify that the query handler was called once without checking the query value
         queryHandlerMock.VerifyQueryHandler(Times.Once());
@@ -129,7 +132,7 @@ public class MockExtensionsTests
     {
         var testApplication = new TestApplication<Program>();
         testApplication.ConfigureContainer<IServiceContainer>(c => c.Register<Foo>());
-        testApplication.Services.GetService<Foo>().Should().NotBeNull();
+        testApplication.Services.GetService<Foo>().ShouldNotBeNull();
     }
 
     [Fact]
@@ -137,7 +140,7 @@ public class MockExtensionsTests
     {
         var testApplication = new TestApplication<Program>();
         testApplication.ConfigureServices(services => services.AddSingleton<Foo>());
-        testApplication.Services.GetService<Foo>().Should().NotBeNull();
+        testApplication.Services.GetService<Foo>().ShouldNotBeNull();
     }
 
     [Fact]
@@ -157,7 +160,76 @@ public class MockExtensionsTests
         commandHandlerMock.VerifyCommandHandler(Times.Once());
     }
 
+    [Fact]
+    public async Task ShouldMockHttpClient()
+    {
+        var testApplication = new TestApplication<Program>();
+        testApplication.MockHttpClient<CommentsClient>()
+            .When(HttpMethod.Get, "*/comments")
+            .Respond("application/json", "{\"Name\":\"Test\"}");
+
+        var client = testApplication.CreateClient();
+        var response = await client.GetAsync("/comments");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.ReadAsStringAsync().Result.ShouldBe("{\"Name\":\"Test\"}");
+    }
+
+    [Fact]
+    public async Task ShouldNotMockWhenUrlDoesNotMatch()
+    {
+        var testApplication = new TestApplication<Program>();
+        testApplication.MockHttpClient<CommentsClient>()
+            .When(HttpMethod.Get, "*/comments")
+            .Respond("application/json", "{\"Name\":\"Test\"}");
+        var client = testApplication.CreateClient();
+        var response = await client.GetAsync("/comments/1");
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("Eliseo@gardner.biz");
+    }
+
+    [Fact]
+    public async Task ShouldMockHttpClientUsingClientName()
+    {
+        var testApplication = new TestApplication<Program>();
+        testApplication.MockHttpClient("CommentsClient")
+            .When(HttpMethod.Get, "*/comments")
+            .Respond("application/json", "{\"Name\":\"Test\"}");
+
+        var client = testApplication.CreateClient();
+        var response = await client.GetAsync("/comments");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldBe("{\"Name\":\"Test\"}");
+    }
+
+    [Fact]
+    public async Task ShouldOnlyMockSpecifiedClient()
+    {
+        var testApplication = new TestApplication<Program>();
+        testApplication.MockHttpClient("CommentsClient")
+            .When(HttpMethod.Get, "*/comments")
+            .Respond("application/json", "{\"Name\":\"Test\"}");
+        var client = testApplication.CreateClient();
+        var response = await client.GetAsync("/posts");
+        var posts = await response.Content.ReadFromJsonAsync<Posts[]>();
+        posts!.Length.ShouldBe(100);
+    }
+
+
+
 
     public class Foo { }
+
+
+    /*
+    {
+    "userId": 1,
+    "id": 1,
+    "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+    "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+  },
+    */
+
+    public record Posts(int UserId, int Id, string Title, string Body);
 }
 

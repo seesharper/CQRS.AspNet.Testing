@@ -14,7 +14,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
     <Nullable>enable</Nullable>
-    <!-- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Moq" Version="4.20.72" />

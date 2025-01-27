@@ -14,8 +14,8 @@ public class TemperatureCommandHandler : ICommandHandler<TemperatureCommand>
         _logger.LogDebug("This is a debug message");
         _logger.LogInformation("This is an information message");
         _logger.LogWarning("This is a warning message");
-        _logger.LogError("This is an error message", new Exception("This is an exception"));
-        _logger.LogCritical("This is a critical message", new Exception("This is a critical exception"));
+        _logger.LogError(new Exception("This is an exception"), "This is an error message");
+        _logger.LogCritical(new Exception("This is a critical exception"), "This is a critical message");
         return Task.CompletedTask;
     }
 }

@@ -1,6 +1,8 @@
 using System.Linq.Expressions;
+using System.Security.Claims;
 using CQRS.Command.Abstractions;
 using CQRS.Query.Abstractions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -270,5 +272,46 @@ public static class TestExtensions
     {
         hostBuilderConfiguration.AddHostBuilderConfiguration(builder => builder.ConfigureServices(configureServices));
         return hostBuilderConfiguration;
+    }
+
+    /// <summary>
+    /// Registers the given <see cref="HttpContext"/> in the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="hostBuilderConfiguration">The <see cref="IHostBuilderConfiguration"/> instance.</param>
+    /// <param name="httpContext">The <see cref="HttpContext"/> to register.</param>
+    public static IHostBuilderConfiguration WithHttpContext(this IHostBuilderConfiguration hostBuilderConfiguration, HttpContext httpContext)
+    {
+        hostBuilderConfiguration.ConfigureServices(services =>
+        {
+            // Remove any existing IHttpContextAccessor registration
+            var existingDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IHttpContextAccessor));
+            if (existingDescriptor != null)
+            {
+                services.Remove(existingDescriptor);
+            }
+
+            services.AddSingleton<IHttpContextAccessor>(new SingletonHttpContextAccessor { HttpContext = httpContext });
+        });
+        return hostBuilderConfiguration;
+    }
+
+    /// <summary>
+    /// Sets the given claims in the <see cref="HttpContext.User"/>.
+    /// </summary>
+    /// <param name="httpContext">The target <see cref="HttpContext"/>.</param>
+    /// <param name="claims">The claims to be added to the <see cref="HttpContext.User"/>.</param>
+    /// <returns>The modified <see cref="HttpContext"/> with the specified claims set.</returns>
+    public static HttpContext WithClaims(this HttpContext httpContext, params Claim[] claims)
+    {
+        var claimsIdentity = new ClaimsIdentity(claims);
+        httpContext.User = new ClaimsPrincipal(claimsIdentity);
+        return httpContext;
+    }
+
+
+
+    internal class SingletonHttpContextAccessor : IHttpContextAccessor
+    {
+        public HttpContext? HttpContext { get; set; }
     }
 }

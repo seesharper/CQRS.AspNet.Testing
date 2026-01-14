@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using CQRS.Command.Abstractions;
 using LightInject;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -216,7 +218,19 @@ public class MockExtensionsTests
         posts!.Length.ShouldBe(100);
     }
 
-
+    [Fact]
+    public async Task ShouldUseClaims()
+    {
+        var testApplication = new TestApplication<Program>();
+        var httpContext = new DefaultHttpContext().WithClaims(new Claim("role", "admin"), new Claim("department", "sales"));        
+        testApplication.WithHttpContext(httpContext);
+        var httpContextAccessor = testApplication.Services.GetRequiredService<IHttpContextAccessor>();
+        var httpContextFromAccessor = httpContextAccessor.HttpContext;
+        httpContextFromAccessor.ShouldNotBeNull();
+        httpContextFromAccessor!.User.ShouldNotBeNull();
+        httpContextFromAccessor.User.HasClaim("role", "admin").ShouldBeTrue();
+        httpContextFromAccessor.User.HasClaim("department", "sales").ShouldBeTrue();
+    }
 
 
     public class Foo { }

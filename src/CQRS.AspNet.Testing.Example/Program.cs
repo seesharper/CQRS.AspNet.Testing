@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseLightInject(sr => sr.RegisterFrom<CompositionRoot>());
 builder.Services.AddHttpClient("PostsClient", client => client.BaseAddress = new Uri("https://jsonplaceholder.typicode.com/posts"));
 builder.Services.AddHttpClient<CommentsClient>(client => client.BaseAddress = new Uri("https://jsonplaceholder.typicode.com/comments"));
-
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

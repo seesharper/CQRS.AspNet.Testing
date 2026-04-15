@@ -37,7 +37,8 @@ public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, 
         {
             configureHostBuilderAction.Invoke(builder);
         }
-        // Added last so it takes precedence over all other providers, including WithConfiguration.
+        // Added last so it takes precedence over other configuration providers.
+        // Configuration updates made via WithConfiguration are written into this provider.
         builder.ConfigureAppConfiguration(configBuilder =>
             configBuilder.Add(new MutableConfigurationSource(_mutableConfigurationProvider)));
         var host = base.CreateHost(builder);
@@ -52,10 +53,23 @@ public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, 
 
 internal class MutableConfigurationProvider : ConfigurationProvider
 {
+    private readonly object _lock = new();
+
     public void Update(string key, string? value)
     {
-        Data[key] = value!;
+        lock (_lock)
+        {
+            Data[key] = value;
+        }
         OnReload();
+    }
+
+    public override bool TryGet(string key, out string? value)
+    {
+        lock (_lock)
+        {
+            return Data.TryGetValue(key, out value);
+        }
     }
 }
 

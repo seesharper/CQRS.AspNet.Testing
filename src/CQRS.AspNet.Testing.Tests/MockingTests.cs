@@ -40,6 +40,7 @@ public class MockExtensionsTests
         .WithConfiguration("AnotherConfigKey", "AnotherOverriddenConfigValue");
         using var client = testApplication.CreateClient();
         var result = await client.GetStringAsync("/config");
+        result.ShouldBe("SomeOverriddenConfigValue");
     }
 
     [Fact]

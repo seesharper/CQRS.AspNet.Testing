@@ -233,6 +233,8 @@ public static class TestExtensions
     /// <returns><see cref="TestApplication{TEntryPoint}"/> for chaining calls.</returns>
     public static TestApplication<TEntryPoint> WithConfiguration<TEntryPoint>(this TestApplication<TEntryPoint> testApplication, string key, string? value) where TEntryPoint : class
     {
+        testApplication.ConfigureHostBuilder(builder => builder.ConfigureHostConfiguration(configurationBuilder =>
+            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { { key, value } })));
         testApplication.UpdateConfiguration(key, value);
         return testApplication;
     }

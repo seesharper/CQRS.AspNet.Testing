@@ -40,7 +40,23 @@ public class MockExtensionsTests
         .WithConfiguration("AnotherConfigKey", "AnotherOverriddenConfigValue");
         using var client = testApplication.CreateClient();
         var result = await client.GetStringAsync("/config");
+        result.ShouldBe("SomeOverriddenConfigValue");
+    }
 
+    [Fact]
+    public async Task ShouldChangeConfigurationAfterHostCreation()
+    {
+        using var testApplication = new TestApplication<Program>()
+            .WithConfiguration("SomeConfigKey", "InitialValue");
+        using var client = testApplication.CreateClient();
+
+        var initialValue = await client.GetStringAsync("/config");
+        initialValue.ShouldBe("InitialValue");
+
+        testApplication.WithConfiguration("SomeConfigKey", "ChangedValue");
+
+        var changedValue = await client.GetStringAsync("/config");
+        changedValue.ShouldBe("ChangedValue");
     }
 
     [Fact]

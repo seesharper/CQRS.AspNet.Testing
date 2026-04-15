@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 namespace CQRS.AspNet.Testing;
@@ -10,6 +11,7 @@ namespace CQRS.AspNet.Testing;
 public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, IHostBuilderConfiguration where TEntryPoint : class
 {
     private readonly List<Action<IHostBuilder>> _configureHostBuilderActions = new();
+    private readonly MutableConfigurationProvider _mutableConfigurationProvider = new();
 
     /// <summary>
     /// Used to configure the <see cref="IHostBuilder"/> before we start to create clients.
@@ -22,6 +24,12 @@ public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, 
         return this;
     }
 
+    internal TestApplication<TEntryPoint> UpdateConfiguration(string key, string? value)
+    {
+        _mutableConfigurationProvider.Update(key, value);
+        return this;
+    }
+
     /// <inheritdoc />
     protected override IHost CreateHost(IHostBuilder builder)
     {
@@ -29,6 +37,9 @@ public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, 
         {
             configureHostBuilderAction.Invoke(builder);
         }
+        // Added last so it takes precedence over all other providers, including WithConfiguration.
+        builder.ConfigureAppConfiguration(configBuilder =>
+            configBuilder.Add(new MutableConfigurationSource(_mutableConfigurationProvider)));
         var host = base.CreateHost(builder);
         return host;
     }
@@ -37,6 +48,24 @@ public class TestApplication<TEntryPoint> : WebApplicationFactory<TEntryPoint>, 
     {
         _configureHostBuilderActions.Add(configureHostBuilder);
     }
+}
+
+internal class MutableConfigurationProvider : ConfigurationProvider
+{
+    public void Update(string key, string? value)
+    {
+        Data[key] = value!;
+        OnReload();
+    }
+}
+
+internal class MutableConfigurationSource : IConfigurationSource
+{
+    private readonly MutableConfigurationProvider _provider;
+
+    public MutableConfigurationSource(MutableConfigurationProvider provider) => _provider = provider;
+
+    public IConfigurationProvider Build(IConfigurationBuilder builder) => _provider;
 }
 
 /// <summary>

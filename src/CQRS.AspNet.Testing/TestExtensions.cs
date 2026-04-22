@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using CQRS.Command.Abstractions;
 using CQRS.Query.Abstractions;
@@ -216,9 +217,21 @@ public static class TestExtensions
         return mockHttpMessageHandler;
     }
 
+    private static readonly ConditionalWeakTable<IHostBuilderConfiguration, Dictionary<Type, object>> _mockRegistries = new();
+
     private static Mock<T> RegisterMockAsSingleton<T>(IHostBuilderConfiguration hostBuilderConfiguration) where T : class
     {
+        var registry = _mockRegistries.GetOrCreateValue(hostBuilderConfiguration);
+
+        if (registry.TryGetValue(typeof(T), out var existing))
+        {
+            var existingMock = (Mock<T>)existing;
+            existingMock.Reset();
+            return existingMock;
+        }
+
         var mock = new Mock<T>();
+        registry[typeof(T)] = mock;
         hostBuilderConfiguration.AddHostBuilderConfiguration(hb => hb.ConfigureServices(services => services.AddSingleton(mock.Object)));
         return mock;
     }

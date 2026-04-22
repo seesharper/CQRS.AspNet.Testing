@@ -249,6 +249,28 @@ public class MockExtensionsTests
     }
 
 
+    [Fact]
+    public async Task ShouldResetMockWhenCalledTwiceOnSameTestApplication()
+    {
+        var testApplication = new TestApplication<Program>();
+
+        // First round — register before CreateClient() so the mock is wired into DI
+        var mock1 = testApplication.MockCommandHandler<TemperatureCommand>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+        mock1.VerifyCommandHandler(cmd => cmd.Value == 10.0, Times.Once());
+
+        // Second round — same instance, reset
+        var mock2 = testApplication.MockCommandHandler<TemperatureCommand>();
+        mock2.ShouldBeSameAs(mock1);
+        mock2.VerifyCommandHandler(Times.Never());
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 20.0)));
+        mock2.VerifyCommandHandler(cmd => cmd.Value == 20.0, Times.Once());
+        mock2.VerifyCommandHandler(cmd => cmd.Value == 10.0, Times.Never());
+    }
+
     public class Foo { }
 
 

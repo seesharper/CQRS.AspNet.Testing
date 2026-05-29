@@ -273,6 +273,24 @@ public class MockExtensionsTests
     }
 
     [Fact]
+    public void ShouldWithHttpContextWhenNoExistingHttpContextAccessor()
+    {
+        var testApplication = new TestApplication<Program>();
+        // Remove IHttpContextAccessor before WithHttpContext runs so the null branch is exercised
+        testApplication.ConfigureServices(services =>
+        {
+            var desc = services.FirstOrDefault(s => s.ServiceType == typeof(IHttpContextAccessor));
+            if (desc != null) services.Remove(desc);
+        });
+        var httpContext = new DefaultHttpContext().WithClaims(new Claim("role", "admin"));
+        testApplication.WithHttpContext(httpContext);
+
+        var accessor = testApplication.Services.GetRequiredService<IHttpContextAccessor>();
+        accessor.HttpContext.ShouldNotBeNull();
+        accessor.HttpContext!.User.HasClaim("role", "admin").ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task ShouldMockServiceDirectly()
     {
         var testApplication = new TestApplication<Program>();

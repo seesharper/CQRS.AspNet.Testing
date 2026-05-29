@@ -232,7 +232,7 @@ public static class TestExtensions
 
         var mock = new Mock<T>();
         registry[typeof(T)] = mock;
-        hostBuilderConfiguration.AddHostBuilderConfiguration(hb => hb.ConfigureServices(services => services.AddSingleton(mock.Object)));
+        hostBuilderConfiguration.ConfigureServices(services => services.AddSingleton(mock.Object));
         return mock;
     }
 
@@ -246,10 +246,16 @@ public static class TestExtensions
     /// <returns><see cref="TestApplication{TEntryPoint}"/> for chaining calls.</returns>
     public static TestApplication<TEntryPoint> WithConfiguration<TEntryPoint>(this TestApplication<TEntryPoint> testApplication, string key, string? value) where TEntryPoint : class
     {
-        testApplication.ConfigureHostBuilder(builder => builder.ConfigureHostConfiguration(configurationBuilder =>
-            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { { key, value } })));
+        testApplication.ConfigureHostConfiguration(configurationBuilder =>
+            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { { key, value } }));
         testApplication.UpdateConfiguration(key, value);
         return testApplication;
+    }
+
+    private static IHostBuilderConfiguration ConfigureHostConfiguration(this IHostBuilderConfiguration hostBuilderConfiguration, Action<IConfigurationBuilder> configureHostConfiguration)
+    {
+        hostBuilderConfiguration.AddHostBuilderConfiguration(builder => builder.ConfigureHostConfiguration(configureHostConfiguration));
+        return hostBuilderConfiguration;
     }
 
     /// <summary>

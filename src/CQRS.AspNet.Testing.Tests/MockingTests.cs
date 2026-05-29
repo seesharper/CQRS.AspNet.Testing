@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using RichardSzalay.MockHttp;
 
 namespace CQRS.AspNet.Testing.Tests;
@@ -269,6 +270,71 @@ public class MockExtensionsTests
         await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 20.0)));
         mock2.VerifyCommandHandler(cmd => cmd.Value == 20.0, Times.Once());
         mock2.VerifyCommandHandler(cmd => cmd.Value == 10.0, Times.Never());
+    }
+
+    [Fact]
+    public void ShouldWithHttpContextWhenNoExistingHttpContextAccessor()
+    {
+        var testApplication = new TestApplication<Program>();
+        // Remove IHttpContextAccessor before WithHttpContext runs so the null branch is exercised
+        testApplication.ConfigureServices(services =>
+        {
+            var desc = services.FirstOrDefault(s => s.ServiceType == typeof(IHttpContextAccessor));
+            if (desc != null) services.Remove(desc);
+        });
+        var httpContext = new DefaultHttpContext().WithClaims(new Claim("role", "admin"));
+        testApplication.WithHttpContext(httpContext);
+
+        var accessor = testApplication.Services.GetRequiredService<IHttpContextAccessor>();
+        accessor.HttpContext.ShouldNotBeNull();
+        accessor.HttpContext!.User.HasClaim("role", "admin").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ShouldMockServiceDirectly()
+    {
+        var testApplication = new TestApplication<Program>();
+        var mock = testApplication.MockService<ICommandHandler<TemperatureCommand>>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        mock.Verify(m => m.HandleAsync(It.IsAny<TemperatureCommand>(), It.IsAny<CancellationToken>()), Times.Once());
+    }
+
+    [Fact]
+    public async Task ShouldVerifyLoggerWithCustomMessageMatcher()
+    {
+        var testApplication = new TestApplication<Program>();
+        var mockLogger = testApplication.MockLogger<TemperatureCommand>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        mockLogger.VerifyLogger(LogLevel.Debug, Times.Once(), msg => msg.StartsWith("This is a debug"));
+        mockLogger.VerifyLogger(LogLevel.Information, Times.Once(), msg => msg.StartsWith("This is an information"));
+    }
+
+    [Fact]
+    public async Task ShouldVerifyLoggerWithExceptionMatcher()
+    {
+        var testApplication = new TestApplication<Program>();
+        var mockLogger = testApplication.MockLogger<TemperatureCommand>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        mockLogger.VerifyLogger(
+            LogLevel.Error,
+            Times.Once(),
+            msg => msg.Contains("error message"),
+            ex => ex is Exception { Message: "This is an exception" });
+
+        mockLogger.VerifyLogger(
+            LogLevel.Critical,
+            Times.Once(),
+            msg => msg.Contains("critical message"),
+            ex => ex is Exception { Message: "This is a critical exception" });
     }
 
     public class Foo { }

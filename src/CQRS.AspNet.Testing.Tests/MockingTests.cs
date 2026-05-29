@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 using RichardSzalay.MockHttp;
 
 namespace CQRS.AspNet.Testing.Tests;
@@ -269,6 +270,53 @@ public class MockExtensionsTests
         await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 20.0)));
         mock2.VerifyCommandHandler(cmd => cmd.Value == 20.0, Times.Once());
         mock2.VerifyCommandHandler(cmd => cmd.Value == 10.0, Times.Never());
+    }
+
+    [Fact]
+    public async Task ShouldMockServiceDirectly()
+    {
+        var testApplication = new TestApplication<Program>();
+        var mock = testApplication.MockService<ICommandHandler<TemperatureCommand>>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        mock.Verify(m => m.HandleAsync(It.IsAny<TemperatureCommand>(), It.IsAny<CancellationToken>()), Times.Once());
+    }
+
+    [Fact]
+    public async Task ShouldVerifyLoggerWithCustomMessageMatcher()
+    {
+        var testApplication = new TestApplication<Program>();
+        var mockLogger = testApplication.MockLogger<TemperatureCommand>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        mockLogger.VerifyLogger(LogLevel.Debug, Times.Once(), msg => msg.StartsWith("This is a debug"));
+        mockLogger.VerifyLogger(LogLevel.Information, Times.Once(), msg => msg.StartsWith("This is an information"));
+    }
+
+    [Fact]
+    public async Task ShouldVerifyLoggerWithExceptionMatcher()
+    {
+        var testApplication = new TestApplication<Program>();
+        var mockLogger = testApplication.MockLogger<TemperatureCommand>();
+        var client = testApplication.CreateClient();
+
+        await client.PostAsync("/temperatures", JsonContent.Create(new TemperatureCommand("Oslo", 10.0)));
+
+        mockLogger.VerifyLogger(
+            LogLevel.Error,
+            Times.Once(),
+            msg => msg.Contains("error message"),
+            ex => ex is Exception { Message: "This is an exception" });
+
+        mockLogger.VerifyLogger(
+            LogLevel.Critical,
+            Times.Once(),
+            msg => msg.Contains("critical message"),
+            ex => ex is Exception { Message: "This is a critical exception" });
     }
 
     public class Foo { }
